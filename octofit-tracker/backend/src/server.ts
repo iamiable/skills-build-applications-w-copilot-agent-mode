@@ -10,7 +10,7 @@ import { connectDatabase, getDatabaseUri } from './config/database';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = Number(process.env.PORT || 8000);
 
 // Middleware
 app.use(express.json());
@@ -20,13 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 const codespaceName = process.env.CODESPACE_NAME;
 const baseUrl = codespaceName
   ? `https://${codespaceName}-8000.app.github.dev`
-  : 'http://localhost:8000';
-
-// MongoDB Connection
-connectDatabase().catch((error) => {
-  console.error('Failed to connect to database:', error);
-  process.exit(1);
-});
+  : `http://localhost:${PORT}`;
 
 // API Routes
 app.use('/api/users', usersRouter);
@@ -45,7 +39,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on ${baseUrl}`);
-});
+// Start server after database connection
+async function startServer(): Promise<void> {
+  try {
+    await connectDatabase();
+    app.listen(PORT, () => {
+      console.log(`Server is running on ${baseUrl}`);
+    });
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

@@ -4,17 +4,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const users_1 = __importDefault(require("./routes/users"));
 const teams_1 = __importDefault(require("./routes/teams"));
 const activities_1 = __importDefault(require("./routes/activities"));
 const leaderboard_1 = __importDefault(require("./routes/leaderboard"));
 const workouts_1 = __importDefault(require("./routes/workouts"));
+const database_1 = require("./config/database");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 8000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/octofit_db';
+const PORT = Number(process.env.PORT || 8000);
 // Middleware
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -22,16 +21,7 @@ app.use(express_1.default.urlencoded({ extended: true }));
 const codespaceName = process.env.CODESPACE_NAME;
 const baseUrl = codespaceName
     ? `https://${codespaceName}-8000.app.github.dev`
-    : 'http://localhost:8000';
-// MongoDB Connection
-mongoose_1.default
-    .connect(MONGODB_URI)
-    .then(() => {
-    console.log(`Connected to MongoDB at ${MONGODB_URI}`);
-})
-    .catch((error) => {
-    console.error('MongoDB connection error:', error);
-});
+    : `http://localhost:${PORT}`;
 // API Routes
 app.use('/api/users', users_1.default);
 app.use('/api/teams', teams_1.default);
@@ -43,11 +33,22 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'API is running',
         baseUrl: baseUrl,
-        codespaceMode: !!codespaceName
+        codespaceMode: !!codespaceName,
+        databaseUri: (0, database_1.getDatabaseUri)(),
     });
 });
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on ${baseUrl}`);
-});
+// Start server after database connection
+async function startServer() {
+    try {
+        await (0, database_1.connectDatabase)();
+        app.listen(PORT, () => {
+            console.log(`Server is running on ${baseUrl}`);
+        });
+    }
+    catch (error) {
+        console.error('Failed to connect to database:', error);
+        process.exit(1);
+    }
+}
+startServer();
 //# sourceMappingURL=server.js.map
