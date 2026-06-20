@@ -21,7 +21,7 @@ export function Activities() {
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        const response = await fetchFromApi('/api/activities');
+        const response = await fetchFromApi('/activities');
         const data = extractArrayFromResponse(response) as Activity[];
         setActivities(data);
         setError(null);
